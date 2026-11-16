@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>qrsend — передача файлов</title>
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
+<style>
+  :root {
+    --bg: #f4f7f6;
+    --surface: #ffffff;
+    --surface-alt: #eef2f1;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --accent: #1a5b55;
+    --accent-hover: #134641;
+    --accent-soft: rgba(26, 91, 85, 0.08);
+    --accent-glow: rgba(26, 91, 85, 0.25);
+    --border: #e2e8f0;
+    --success: #10b981;
+    --success-soft: rgba(16, 185, 129, 0.12);
+    --error: #ef4444;
+    --error-soft: rgba(239, 68, 68, 0.12);
+    --wait: #9ca3af;
+    --wait-soft: rgba(156, 163, 175, 0.14);
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1413;
+      --surface: #18201f;
+      --surface-alt: #212c2a;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #2bb5a8;
+      --accent-hover: #38c9bb;
+      --accent-soft: rgba(43, 181, 168, 0.12);
+      --accent-glow: rgba(43, 181, 168, 0.3);
+      --border: #2b3937;
+      --success: #34d399;
+      --success-soft: rgba(52, 211, 153, 0.15);
+      --error: #f87171;
+      --error-soft: rgba(248, 113, 113, 0.15);
+      --wait: #6b7280;
+      --wait-soft: rgba(107, 114, 128, 0.2);
+      --shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 20px 16px 110px;
+    line-height: 1.4;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 660px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+  .brand-icon img { width: 100%; height: 100%; display: block; }
+  @media (prefers-color-scheme: dark) {
+    .brand-icon { color: #0b1110; }
+  }
+  h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+  .subtitle {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 2px 0 0;
+  }
+
+  /* Error Banner */
+  .alert-error {
+    background: var(--error-soft);
+    border: 1px solid var(--error);
+    color: var(--error);
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Dropzone */
+  .dropzone {
+    position: relative;
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s, transform 0.15s;
+    box-shadow: var(--shadow);
+    user-select: none;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .dropzone:active {
+    transform: scale(0.99);
+  }
+  .dropzone.disabled {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .dropzone input[type="file"] {
+    display: none;
+  }
+  .dropzone-icon {
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+  }
+  .dropzone:hover .dropzone-icon {
+    transform: translateY(-2px);
+  }
+  .dropzone-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .dropzone-hint {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .btn-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 11px 22px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  @media (prefers-color-scheme: dark) {
+    .btn-pick { color: #0b1110; }
+  }
+  .btn-pick:hover {
+    background: var(--accent-hover);
+  }
+
+  /* Full-window Drag Overlay */
+  .window-drop-overlay {
+    position: fixed;
+    inset: 12px;
+    background: var(--surface);
+    border: 3px dashed var(--accent);
+    border-radius: var(--radius-lg);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  }
+  .window-drop-overlay.active {
+    opacity: 0.96;
+  }
+  .window-drop-overlay svg {
+    color: var(--accent);
+    animation: bounce 1.2s infinite ease-in-out;
+  }
+  .window-drop-overlay span {
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  /* Overall Dashboard */
+  .summary-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    margin-top: 16px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    animation: fadeSlide 0.25s ease-out;
+  }
+  .summary-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .summary-title {
+    font-weight: 700;
+    font-size: 0.98rem;
+  }
+  .summary-size {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .overall-bar {
+    height: 10px;
+    background: var(--surface-alt);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .overall-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 999px;
+    transition: width 0.25s ease-out, background-color 0.3s;
+  }
+  .overall-fill.done {
+    background: var(--success);
+  }
+  .summary-metrics {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.83rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .metric-group {
+    display: flex;
+    gap: 14px;
+  }
+  .metric-val {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .btn-clear {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .btn-clear:hover:not(:disabled) {
+    color: var(--error);
+    background: var(--error-soft);
+  }
+  .btn-clear:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  /* File Cards List */
+  #list {
+    list-style: none;
+    padding: 0;
+    margin: 16px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .file-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow);
+    animation: fadeSlide 0.25s ease-out;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .file-card.is-uploading {
+    border-color: var(--accent);
+    animation: activePulse 2s infinite ease-in-out;
+  }
+  .file-card.is-done {
+    border-color: rgba(16, 185, 129, 0.4);
+  }
+  .file-card.is-error {
+    border-color: rgba(239, 68, 68, 0.5);
+  }
+
+  /* Thumbnail / Icon */
+  .thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: var(--surface-alt);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: var(--accent);
+    position: relative;
+  }
+  .thumb img, .thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* File Details */
+  .card-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .card-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .name {
+    font-weight: 600;
+    font-size: 0.93rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 7px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Status Badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .badge-wait {
+    background: var(--wait-soft);
+    color: var(--text-muted);
+  }
+  .badge-active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .badge-done {
+    background: var(--success-soft);
+    color: var(--success);
+  }
+  .badge-error {
+    background: var(--error-soft);
+    color: var(--error);
+  }
+
+  .check-icon {
+    width: 14px;
+    height: 14px;
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    animation: drawCheck 0.35s 0.05s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+  }
+
+  /* Progress Bar inside Card */
+  .bar {
+    width: 100%;
+    height: 6px;
+    background: var(--surface-alt);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 999px;
+    transition: width 0.2s ease-out, background-color 0.25s;
+    position: relative;
+  }
+  .file-card.is-uploading .fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    animation: shimmer 1.2s infinite;
+  }
+  .file-card.is-done .fill {
+    background: var(--success);
+  }
+  .file-card.is-error .fill {
+    background: var(--error);
+  }
+
+  /* Remove Item Button */
+  .btn-remove {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-remove:hover {
+    background: var(--error-soft);
+    color: var(--error);
+  }
+
+  /* Bottom Sticky Action Bar */
+  .action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--bg) 75%, transparent);
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+  #start {
+    pointer-events: auto;
+    width: 100%;
+    max-width: 660px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 16px 24px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 8px 25px var(--accent-glow);
+    transition: background 0.2s, transform 0.15s, opacity 0.2s;
+  }
+  @media (prefers-color-scheme: dark) {
+    #start { color: #0b1110; }
+  }
+  #start:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+  #start:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  #start:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
+  /* Keyframe Animations */
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes activePulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+    50% { box-shadow: 0 0 0 4px var(--accent-glow); }
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  @keyframes drawCheck {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 16px 12px 105px; }
+    .dropzone { padding: 24px 14px; }
+    .thumb { width: 44px; height: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="window-drop-overlay" id="dropOverlay">
+  <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="17 8 12 3 7 8"/>
+    <line x1="12" y1="3" x2="12" y2="15"/>
+  </svg>
+  <span>Отпустите файлы для добавления</span>
+</div>
+
+<div class="container">
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <img src="/favicon.ico" alt="" width="40" height="40">
+      </div>
+      <div>
+        <h1>qrsend</h1>
+        <p class="subtitle">Быстрая передача по локальной сети</p>
+      </div>
+    </div>
+  </header>
+
+  <div id="tokenError" class="alert-error" hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span>Нет токена в ссылке. Отсканируйте QR-код заново.</span>
+  </div>
+
+  <div class="dropzone" id="dropzone" role="button" tabindex="0">
+    <input type="file" id="file" multiple>
+    <div class="dropzone-icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <div class="dropzone-title">Перетащите файлы сюда</div>
+    <div class="dropzone-hint">или выберите на устройстве (можно несколько)</div>
+    <span class="btn-pick">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Выбрать файлы
+    </span>
+  </div>
+
+  <div class="summary-card" id="summaryCard" hidden>
+    <div class="summary-top">
+      <div class="summary-title" id="summaryCount">Готово: 0 из 0</div>
+      <div class="summary-size" id="summarySize">0 КБ / 0 КБ</div>
+    </div>
+    <div class="overall-bar">
+      <div class="overall-fill" id="overallFill"></div>
+    </div>
+    <div class="summary-metrics">
+      <div class="metric-group" id="stats" hidden>
+        <span>Скорость: <strong class="metric-val" id="speed">0 КБ/с</strong></span>
+        <span>Время: <strong class="metric-val" id="timer">00:00:00</strong></span>
+      </div>
+      <button type="button" class="btn-clear" id="clearBtn">Очистить список</button>
+    </div>
+  </div>
+
+  <ul id="list"></ul>
+</div>
+
+<div class="action-bar" id="actionBar" hidden>
+  <button id="start" type="button">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13"/>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+    <span id="startText">Отправить файлы</span>
+  </button>
+</div>
+
+<script>
+(function () {
+  var searchParams = new URLSearchParams(location.search);
+  var hashParams = new URLSearchParams(location.hash.replace(/^#\/?\??/, ""));
+  var token = searchParams.get("t") || searchParams.get("token") || hashParams.get("t") || hashParams.get("token");
+
+  var input = document.getElementById("file");
+  var dropzone = document.getElementById("dropzone");
+  var dropOverlay = document.getElementById("dropOverlay");
+  var list = document.getElementById("list");
+  var actionBar = document.getElementById("actionBar");
+  var startBtn = document.getElementById("start");
+  var startText = document.getElementById("startText");
+  var clearBtn = document.getElementById("clearBtn");
+  var summaryCard = document.getElementById("summaryCard");
+  var summaryCount = document.getElementById("summaryCount");
+  var summarySize = document.getElementById("summarySize");
+  var overallFill = document.getElementById("overallFill");
+  var stats = document.getElementById("stats");
+  var speedEl = document.getElementById("speed");
+  var timerEl = document.getElementById("timer");
+  var tokenError = document.getElementById("tokenError");
+
+  var queue = []; // { file, li, fill, badge, state }
+  var running = false;
+  var timerId = null;
+  var startedAt = 0;
+
+  var sampleAt = 0;
+  var sampleBytes = 0;
+  var doneBytes = 0;
+  var currentLoaded = 0;
+  var totalBatchBytes = 0;
+  var doneFilesCount = 0;
+
+  // Sends an event to the PC log (/api/log). Never throws; logging must not break uploads.
+  function clog(event, data) {
+    try {
+      fetch("/api/log?t=" + encodeURIComponent(token || ""), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Qrsend-Token": token || "" },
+        body: JSON.stringify({ event: event, data: data || null, ua: navigator.userAgent }),
+        keepalive: true
+      }).catch(function () {});
+    } catch (e) { /* ignore */ }
+  }
+
+  if (!token) {
+    tokenError.hidden = false;
+    dropzone.classList.add("disabled");
+    input.disabled = true;
+    return;
+  }
+
+  tokenError.hidden = true;
+  clog("page_loaded", { href: location.href.replace(/([?&]t(?:oken)?=)[^&#]+/gi, "$1***") });
+
+  window.addEventListener("error", function (e) {
+    clog("js_error", { message: e.message, source: e.filename, line: e.lineno });
+  });
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return "0 Б";
+    if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " ГБ";
+    if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " МБ";
+    if (bytes >= 1024) return (bytes / 1024).toFixed(1) + " КБ";
+    return bytes + " Б";
+  }
+
+  function formatSpeed(bytesPerSec) {
+    if (bytesPerSec >= 1024 * 1024) return (bytesPerSec / 1024 / 1024).toFixed(2) + " МБ/с";
+    return (bytesPerSec / 1024).toFixed(1) + " КБ/с";
+  }
+
+  function formatTime(ms) {
+    var s = Math.floor(ms / 1000);
+    var h = String(Math.floor(s / 3600)).padStart(2, "0");
+    var m = String(Math.floor(s % 3600 / 60)).padStart(2, "0");
+    var sec = String(s % 60).padStart(2, "0");
+    return h + ":" + m + ":" + sec;
+  }
+
+  function getFileIconSvg(file) {
+    var type = (file.type || "").toLowerCase();
+    var name = file.name.toLowerCase();
+
+    if (type.indexOf("audio/") === 0 || /\.(mp3|wav|flac|ogg|m4a)$/.test(name)) {
+      return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+    }
+    if (/\.(zip|rar|7z|tar|gz|bz2)$/.test(name)) {
+      return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>';
+    }
+    if (type.indexOf("text/") === 0 || /\.(pdf|doc|docx|xls|xlsx|txt|md|json|js|rs|py|html|css)$/.test(name)) {
+      return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+    }
+    return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>';
+  }
+
+  function createThumbnail(file, thumbEl) {
+    var type = (file.type || "").toLowerCase();
+    if (type.indexOf("image/") === 0) {
+      var url = URL.createObjectURL(file);
+      var img = document.createElement("img");
+      img.src = url;
+      img.onload = function () { URL.revokeObjectURL(url); };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        thumbEl.innerHTML = getFileIconSvg(file);
+      };
+      thumbEl.appendChild(img);
+      return;
+    }
+    if (type.indexOf("video/") === 0) {
+      var vUrl = URL.createObjectURL(file);
+      var video = document.createElement("video");
+      video.src = vUrl;
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "metadata";
+      video.onloadeddata = function () {
+        video.currentTime = Math.min(1, video.duration / 4 || 0);
+      };
+      video.onseeked = function () { URL.revokeObjectURL(vUrl); };
+      video.onerror = function () {
+        URL.revokeObjectURL(vUrl);
+        thumbEl.innerHTML = getFileIconSvg(file);
+      };
+      thumbEl.appendChild(video);
+      return;
+    }
+    thumbEl.innerHTML = getFileIconSvg(file);
+  }
+
+  function setItemBadge(item, state, text) {
+    item.state = state;
+    item.li.classList.remove("is-uploading", "is-done", "is-error");
+    item.badge.className = "badge";
+
+    if (state === "wait") {
+      item.badge.classList.add("badge-wait");
+      item.badge.textContent = text || "ожидает";
+    } else if (state === "active") {
+      item.li.classList.add("is-uploading");
+      item.badge.classList.add("badge-active");
+      item.badge.textContent = text;
+    } else if (state === "done") {
+      item.li.classList.add("is-done");
+      item.badge.classList.add("badge-done");
+      item.badge.innerHTML = '<svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>готово</span>';
+    } else if (state === "error") {
+      item.li.classList.add("is-error");
+      item.badge.classList.add("badge-error");
+      item.badge.textContent = text || "ошибка";
+    }
+  }
+
+  function updateSummaryUI() {
+    var totalCount = queue.length;
+    if (totalCount === 0) {
+      summaryCard.hidden = true;
+      actionBar.hidden = true;
+      return;
+    }
+
+    summaryCard.hidden = false;
+    totalBatchBytes = queue.reduce(function (sum, item) { return sum + item.file.size; }, 0);
+    doneFilesCount = queue.filter(function (item) { return item.state === "done"; }).length;
+
+    var transferred = Math.min(totalBatchBytes, doneBytes + currentLoaded);
+    var pct = totalBatchBytes > 0 ? Math.min(100, Math.floor((transferred / totalBatchBytes) * 100)) : 0;
+
+    if (doneFilesCount === totalCount && totalCount > 0) {
+      pct = 100;
+      overallFill.classList.add("done");
+    } else {
+      overallFill.classList.remove("done");
+    }
+
+    summaryCount.textContent = "Файлы: " + doneFilesCount + " из " + totalCount;
+    summarySize.textContent = formatBytes(transferred) + " / " + formatBytes(totalBatchBytes);
+    overallFill.style.width = pct + "%";
+
+    var pendingCount = queue.filter(function (item) { return item.state === "wait"; }).length;
+    if (!running && pendingCount > 0) {
+      actionBar.hidden = false;
+      startText.textContent = "Загрузить файлы (" + pendingCount + " шт. • " + formatBytes(
+        queue.reduce(function (s, i) { return i.state === "wait" ? s + i.file.size : s; }, 0)
+      ) + ")";
+    } else if (!running && pendingCount === 0) {
+      actionBar.hidden = true;
+    }
+  }
+
+  function addItem(file) {
+    var li = document.createElement("li");
+    li.className = "file-card";
+
+    var thumb = document.createElement("div");
+    thumb.className = "thumb";
+    createThumbnail(file, thumb);
+
+    var body = document.createElement("div");
+    body.className = "card-body";
+
+    var rowTop = document.createElement("div");
+    rowTop.className = "card-row-top";
+
+    var name = document.createElement("div");
+    name.className = "name";
+    name.textContent = file.name;
+    name.title = file.name;
+
+    var badge = document.createElement("span");
+    badge.className = "badge badge-wait";
+    badge.textContent = "ожидает";
+
+    rowTop.appendChild(name);
+    rowTop.appendChild(badge);
+
+    var meta = document.createElement("div");
+    meta.className = "card-meta";
+    meta.textContent = formatBytes(file.size);
+
+    var bar = document.createElement("div");
+    bar.className = "bar";
+    var fill = document.createElement("div");
+    fill.className = "fill";
+    bar.appendChild(fill);
+
+    body.appendChild(rowTop);
+    body.appendChild(meta);
+    body.appendChild(bar);
+
+    var removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "btn-remove";
+    removeBtn.title = "Убрать из списка";
+    removeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+    var itemObj = { file: file, li: li, fill: fill, badge: badge, removeBtn: removeBtn, state: "wait" };
+
+    removeBtn.addEventListener("click", function () {
+      if (running) return;
+      var idx = queue.indexOf(itemObj);
+      if (idx !== -1) queue.splice(idx, 1);
+      if (itemObj.state === "done") doneBytes = Math.max(0, doneBytes - file.size);
+      li.remove();
+      updateSummaryUI();
+    });
+
+    li.appendChild(thumb);
+    li.appendChild(body);
+    li.appendChild(removeBtn);
+    list.appendChild(li);
+
+    return itemObj;
+  }
+
+  function handleFiles(fileList) {
+    if (running || !fileList || fileList.length === 0) return;
+
+    var allFinished = queue.length > 0 && queue.every(function (i) { return i.state !== "wait"; });
+    if (allFinished) {
+      queue = [];
+      list.innerHTML = "";
+      doneBytes = 0;
+      currentLoaded = 0;
+      stats.hidden = true;
+    }
+
+    for (var i = 0; i < fileList.length; i++) {
+      queue.push(addItem(fileList[i]));
+    }
+
+    clog("files_selected", {
+      count: fileList.length,
+      names: Array.prototype.map.call(fileList, function (f) { return f.name + " (" + f.size + " B)"; })
+    });
+
+    updateSummaryUI();
+  }
+
+  dropzone.addEventListener("click", function () {
+    if (!running && !input.disabled) input.click();
+  });
+  dropzone.addEventListener("keydown", function (e) {
+    if ((e.key === "Enter" || e.key === " ") && !running && !input.disabled) {
+      e.preventDefault();
+      input.click();
+    }
+  });
+
+  input.addEventListener("change", function () {
+    handleFiles(input.files);
+    input.value = "";
+  });
+
+  clearBtn.addEventListener("click", function () {
+    if (running) return;
+    queue = [];
+    list.innerHTML = "";
+    doneBytes = 0;
+    currentLoaded = 0;
+    stats.hidden = true;
+    updateSummaryUI();
+  });
+
+  var dragDepth = 0;
+
+  window.addEventListener("dragenter", function (e) {
+    e.preventDefault();
+    if (running || !token) return;
+    dragDepth++;
+    dropOverlay.classList.add("active");
+  });
+
+  window.addEventListener("dragover", function (e) {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+  });
+
+  window.addEventListener("dragleave", function (e) {
+    e.preventDefault();
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) {
+      dropOverlay.classList.remove("active");
+      dropzone.classList.remove("dragover");
+    }
+  });
+
+  window.addEventListener("drop", function (e) {
+    e.preventDefault();
+    dragDepth = 0;
+    dropOverlay.classList.remove("active");
+    dropzone.classList.remove("dragover");
+    if (running || !token) return;
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
+  });
+
+  function createBatch(itemsToUpload) {
+    var total = itemsToUpload.reduce(function (sum, item) { return sum + item.file.size; }, 0);
+    clog("batch_create_request", { total: total });
+    return fetch("/api/batches?t=" + encodeURIComponent(token) + "&total=" + total, {
+      method: "POST",
+      headers: { "X-Qrsend-Token": token }
+    }).then(function (res) {
+      if (!res.ok) throw new Error("batch " + res.status);
+      return res.json();
+    }).then(function (body) {
+      clog("batch_created", { id: body.id });
+      return body.id;
+    }, function (err) {
+      clog("batch_create_failed", { error: String(err && err.message || err) });
+      throw err;
+    });
+  }
+
+  function sampleSpeed(now) {
+    var total = doneBytes + currentLoaded;
+    if (sampleAt === 0) {
+      sampleAt = now;
+      sampleBytes = total;
+      return;
+    }
+    var dt = (now - sampleAt) / 1000;
+    if (dt >= 0.5) {
+      speedEl.textContent = formatSpeed(Math.max(0, (total - sampleBytes) / dt));
+      sampleAt = now;
+      sampleBytes = total;
+    }
+  }
+
+  function uploadFile(batchId, item) {
+    return new Promise(function (resolve) {
+      var xhr = new XMLHttpRequest();
+      var url = "/api/batches/" + encodeURIComponent(batchId) + "/files?name=" +
+        encodeURIComponent(item.file.name) + "&t=" + encodeURIComponent(token);
+      xhr.open("PUT", url);
+      xhr.setRequestHeader("X-Qrsend-Token", token);
+      xhr.setRequestHeader("Content-Type", "application/octet-stream");
+
+      setItemBadge(item, "active", "0%");
+      item.fill.style.width = "0%";
+      var began = performance.now();
+      clog("file_start", { name: item.file.name, size: item.file.size, batch: batchId });
+
+      xhr.upload.onprogress = function (e) {
+        if (!e.lengthComputable) return;
+        currentLoaded = e.loaded;
+        var pct = e.total > 0 ? Math.floor(e.loaded / e.total * 100) : 0;
+        item.fill.style.width = pct + "%";
+        setItemBadge(item, "active", pct + "%");
+        sampleSpeed(performance.now());
+        updateSummaryUI();
+      };
+      xhr.onload = function () {
+        var secs = (performance.now() - began) / 1000;
+        if (xhr.status >= 200 && xhr.status < 300) {
+          item.fill.style.width = "100%";
+          setItemBadge(item, "done");
+          clog("file_done", { name: item.file.name, status: xhr.status, seconds: secs.toFixed(2) });
+          resolve(true);
+        } else {
+          setItemBadge(item, "error", "ошибка " + xhr.status);
+          clog("file_http_error", { name: item.file.name, status: xhr.status, body: xhr.responseText.slice(0, 200) });
+          resolve(false);
+        }
+      };
+      xhr.onerror = function () {
+        setItemBadge(item, "error", "ошибка сети");
+        clog("file_network_error", { name: item.file.name, readyState: xhr.readyState });
+        resolve(false);
+      };
+      xhr.onabort = function () {
+        setItemBadge(item, "error", "прервано");
+        clog("file_aborted", { name: item.file.name });
+        resolve(false);
+      };
+      xhr.ontimeout = function () {
+        setItemBadge(item, "error", "таймаут");
+        clog("file_timeout", { name: item.file.name });
+        resolve(false);
+      };
+      xhr.send(item.file);
+    }).then(function (ok) {
+      if (ok) doneBytes += item.file.size;
+      currentLoaded = 0;
+      updateSummaryUI();
+      return ok;
+    });
+  }
+
+  function stopTimer() {
+    clearInterval(timerId);
+    timerId = null;
+    timerEl.textContent = formatTime(performance.now() - startedAt);
+  }
+
+  startBtn.addEventListener("click", function () {
+    var pendingItems = queue.filter(function (item) { return item.state === "wait"; });
+    if (running || pendingItems.length === 0) return;
+
+    running = true;
+    startBtn.disabled = true;
+    startText.textContent = "Передача файлов...";
+    clearBtn.disabled = true;
+    input.disabled = true;
+    dropzone.classList.add("disabled");
+    queue.forEach(function (item) { item.removeBtn.hidden = true; });
+
+    stats.hidden = false;
+    speedEl.textContent = "0 КБ/с";
+    currentLoaded = 0;
+    sampleAt = 0;
+    startedAt = performance.now();
+    timerEl.textContent = "00:00:00";
+    timerId = setInterval(function () {
+      timerEl.textContent = formatTime(performance.now() - startedAt);
+    }, 1000);
+
+    clog("upload_all_start", { count: pendingItems.length });
+
+    createBatch(pendingItems).then(function (batchId) {
+      return pendingItems.reduce(function (chain, item) {
+        return chain.then(function () { return uploadFile(batchId, item); });
+      }, Promise.resolve());
+    }).catch(function (err) {
+      pendingItems.forEach(function (item) {
+        if (item.state === "wait") setItemBadge(item, "error", "ошибка: " + err.message);
+      });
+    }).then(function () {
+      stopTimer();
+      clog("upload_all_done", { seconds: ((performance.now() - startedAt) / 1000).toFixed(2) });
+      speedEl.textContent = "0 КБ/с";
+      running = false;
+      startBtn.disabled = false;
+      clearBtn.disabled = false;
+      input.disabled = false;
+      dropzone.classList.remove("disabled");
+      queue.forEach(function (item) { item.removeBtn.hidden = false; });
+      updateSummaryUI();
+    });
+  });
+})();
+</script>
+</body>
+</html>
